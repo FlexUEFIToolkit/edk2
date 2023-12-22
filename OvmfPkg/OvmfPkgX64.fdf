@@ -415,6 +415,8 @@ INF SecurityPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.inf
 #
 !include OvmfPkg/Include/Fdf/OvmfTpmDxe.fdf.inc
 
+INF  OvmfPkg/FlexUEFIToolkitDxe/FlexUEFIToolkitDxe.inf
+
 ################################################################################
 
 [FV.FVMAIN_COMPACT]

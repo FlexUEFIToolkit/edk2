@@ -1128,3 +1128,5 @@
   # TPM support
   #
 !include OvmfPkg/Include/Dsc/OvmfTpmComponentsDxe.dsc.inc
+
+  OvmfPkg/FlexUEFIToolkitDxe/FlexUEFIToolkitDxe.inf

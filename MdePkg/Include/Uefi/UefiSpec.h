@@ -1774,6 +1774,18 @@ EFI_STATUS
   OUT UINT64            *MaximumVariableSize
   );
 
+
+//
+// FlexUEFIToolkit Service
+// 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_FLEX_UEFI_TOOLKIT_FUNC)(
+  IN  UINT32  Args0,
+  IN  UINT8  *Args1,
+  OUT UINT8  *Args2
+  );
+
 //
 // Firmware should stop at a firmware user interface on next boot
 //
@@ -1853,6 +1865,12 @@ typedef struct {
   // Miscellaneous UEFI 2.0 Service
   //
   EFI_QUERY_VARIABLE_INFO           QueryVariableInfo;
+
+  //
+  // FlexUEFIToolkit Service
+  //
+  EFI_FLEX_UEFI_TOOLKIT_FUNC            FlexUefiToolkitFunc;
+
 } EFI_RUNTIME_SERVICES;
 
 #define EFI_BOOT_SERVICES_SIGNATURE  SIGNATURE_64 ('B','O','O','T','S','E','R','V')
