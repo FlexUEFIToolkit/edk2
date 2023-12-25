@@ -3,7 +3,9 @@
 #include <Library/UefiRuntimeLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/DebugLib.h>
+#include <Library/BaseLib.h>
 #include "FlexUEFIToolkitDxe.h"
+#include "QemuFlash.h"
 
 int
 EFIAPI
@@ -25,6 +27,33 @@ FlexUEFIToLowerCase(
     return k;
 }
 
+int
+EFIAPI
+FlexUEFIReadFlash(
+  IN        EFI_LBA  Lba,
+  IN        UINTN    Offset,
+  IN        UINTN    *NumBytes,
+  OUT       UINT8    *Buffer
+)
+{
+    EFI_STATUS status = QemuFlashRead(Lba,Offset,NumBytes,Buffer);
+    Buffer[(*NumBytes)-1]='\0';
+    if((int)status < 0) 
+            DEBUG((DEBUG_ERROR, "QemuFlashRead error: %d\n",(int)status));
+    return (int)status;
+}
+
+EFI_STATUS
+EFIAPI
+FlexUEFIChangeBIOS(
+    IN  char *Src,
+    OUT char *Dst
+)
+{
+    // TODO
+    return EFI_SUCCESS;
+}
+
 
 EFI_STATUS
 EFIAPI
@@ -35,6 +64,7 @@ FlexUefiToolkitFunc (
 )
 {
     EFI_STATUS status;
+    Args0 = ((char *)Args1)[0]-'0';
     DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: FlexUefiToolkitFunc: %d\n", Args0));
     switch((FLEX_UEFI_TOOKLIT_FUNC_TYPE)Args0) {
         case futNonOp:
@@ -45,6 +75,20 @@ FlexUefiToolkitFunc (
             status = FlexUEFIToLowerCase((char *)Args1, (char *)Args2);
             DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futToLowerCase, src = %s, dst = %s.", (char *)Args1, (char *)Args2));
             break;
+        case futReadFlash:
+        {
+            UINTN lba,offset,readByte;
+            lba = ((char *)Args1)[2]-'0';
+            offset = ((char *)Args1)[4]-'0';
+            readByte = AsciiStrDecimalToUint64(((char *)Args1)+6);
+            DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futReadFlash readByte: %d\n", readByte));
+            char buffer[readByte];
+            status = FlexUEFIReadFlash(lba,offset,&readByte,(UINT8 *)buffer);
+            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futReadFlash, lba = %lld, offset = %lld, readByte = %lld, content = %s.",lba,offset,readByte,buffer));
+            break;
+        }
+        case futChangeBIOS:
+        	break;
         default:
             DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: Unknown Func Type."));
             status = 0x12345;

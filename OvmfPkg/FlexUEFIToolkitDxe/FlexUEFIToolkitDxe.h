@@ -11,6 +11,8 @@ extern "C" {
 typedef enum {
     futNonOp            = 0,
     futToLowerCase      = 1,
+    futReadFlash         =2,
+    futChangeBIOS	= 3,
     futFuncNum
 
 } FLEX_UEFI_TOOKLIT_FUNC_TYPE;
