@@ -5,3 +5,8 @@ Build/
 __pycache__/
 tags/
 .vscode/
+QemuScripts/RunUbuntuDebug.sh
+QemuScripts/RunUbuntuGUI.sh
+QemuScripts/RunUbuntuNoGUI.sh
+QemuScripts/RunUEFI.sh
+QemuScripts/Ubuntu-22.04-2.qcow2
