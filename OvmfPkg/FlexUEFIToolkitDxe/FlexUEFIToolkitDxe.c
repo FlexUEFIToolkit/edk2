@@ -82,9 +82,9 @@ FlexUefiToolkitFunc (
             offset = ((char *)Args1)[4]-'0';
             readByte = AsciiStrDecimalToUint64(((char *)Args1)+6);
             DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futReadFlash readByte: %d\n", readByte));
-            char buffer[readByte];
-            status = FlexUEFIReadFlash(lba,offset,&readByte,(UINT8 *)buffer);
-            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futReadFlash, lba = %lld, offset = %lld, readByte = %lld, content = %s.",lba,offset,readByte,buffer));
+            // char buffer[readByte];
+            status = FlexUEFIReadFlash(lba,offset,&readByte,(UINT8 *)Args2);
+            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futReadFlash, lba = %lld, offset = %lld, readByte = %lld.",lba,offset,readByte));
             break;
         }
         case futChangeBIOS:
@@ -118,6 +118,12 @@ FlexUEFIToolkitDxeEntryPoint(
     } else {
         
         DEBUG((DEBUG_INFO,"UEFI Variable %s creation failure: %x.\n", FLEX_UEFI_TOOLKIT_VARIABLE_NAME, e));
+    }
+
+    UINTN ret = (INTN)(RETURN_STATUS)QemuFlashInitialize ();
+    if (EFI_ERROR (QemuFlashInitialize ())) {
+        // Return an error so image will be unloaded
+        DEBUG((DEBUG_ERROR,"FlexUEFIToolkitDxeEntryPoint::QEMU flash was not detected. Writable FVB is not being installed. Error Num: %d\n",ret));
     }
       
 

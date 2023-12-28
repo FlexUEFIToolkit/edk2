@@ -168,8 +168,24 @@ QemuFlashRead (
   // Get flash address
   //
   Ptr = (UINT8 *)QemuFlashPtr (Lba, Offset);
+  DEBUG ((DEBUG_ERROR, "QemuFlashRead bytes: %lld, Ptr: %p, Buffer: %p\n",*NumBytes,Ptr,Buffer));
+  // DEBUG ((DEBUG_ERROR, "QemuFlashRead directly from Ptr\n"));
+  // for(int i = 1; i <= *NumBytes; i++){
+  //           DEBUG((DEBUG_ERROR,"%02X ",Ptr[i-1]));					
+  //           if(i % 16 == 0){
+  //               DEBUG((DEBUG_ERROR,"\n"));
+  //           }
+  //     }
 
   CopyMem (Buffer, Ptr, *NumBytes);
+
+  DEBUG ((DEBUG_ERROR, "QemuFlashRead after copy bytes: %lld\n",*NumBytes));
+  // for(int i = 1; i <= *NumBytes; i++){
+  //           DEBUG((DEBUG_ERROR,"%02X ",Buffer[i-1]));					
+  //           if(i % 16 == 0){
+  //               DEBUG((DEBUG_ERROR,"\n"));
+  //           }
+  //     }
 
   return EFI_SUCCESS;
 }
