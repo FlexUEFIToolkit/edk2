@@ -180,7 +180,7 @@ FlexUEFIReadFlash(
 )
 {
     EFI_STATUS status = QemuFlashRead(Lba,Offset,NumBytes,Buffer);
-    Buffer[(*NumBytes)-1]='\0';
+//  Buffer[(*NumBytes)-1]='\0';
     if((int)status < 0) 
             DEBUG((DEBUG_ERROR, "QemuFlashRead error: %d\n",(int)status));
     return (int)status;
