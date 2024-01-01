@@ -192,11 +192,16 @@ FlexUEFIReadFlash(
 EFI_STATUS
 EFIAPI
 FlexUEFIChangeBIOS(
-    IN  char *Src,
-    OUT char *Dst
+  IN        EFI_LBA  Lba,
+  IN        UINTN    Offset,
+  IN        UINTN    *NumBytes,
+  IN        UINT8    *Buffer
 )
 {
     // TODO
+    EFI_STATUS status = QemuFlashWrite(Lba, Offset, NumBytes, Buffer);
+    if((int)status < 0)
+        DEBUG((DEBUG_ERROR, "QemuFlashWrite error: %d\n",(int)status));
     return EFI_SUCCESS;
 }
 
@@ -210,7 +215,6 @@ FlexUefiToolkitFunc (
 )
 {
     EFI_STATUS status;
-    Args0 = ((char *)Args1)[0]-'0';
     DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: FlexUefiToolkitFunc: %d\n", Args0));
     switch((FLEX_UEFI_TOOKLIT_FUNC_TYPE)Args0) {
         case futNonOp:
@@ -234,7 +238,16 @@ FlexUefiToolkitFunc (
             break;
         }
         case futChangeBIOS:
-        	break;
+        {
+            UINTN lba, offset, writeByte;
+            lba = ((UINTN*)(Args1+4))[0];
+            offset = ((UINTN*)(Args1+4))[1];
+            writeByte = ((UINTN*)(Args1+4))[2];
+            DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futChangeBIOS writeByte: %d\n", writeByte));
+            status = FlexUEFIChangeBIOS(lba, offset, &writeByte, (UINT8 *)Args1 + 28);
+            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futChangeBIOS, lba = %lld, offset = %lld, writeByte = %lld.\n",lba,offset,writeByte));
+            break;
+        }
         case futSetFisrtBoot:
             DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futSetFisrtBoot set BOOTXXXX First to Boot. BEFORE\n \n"));
             status = FlexUEFISetFirstBoot(1, (CHAR16 **)Args1);
