@@ -112,11 +112,8 @@ FlexUEFISetFirstBoot (
     EFI_STATUS    Status;
     UINT16        *BootVariable;
     UINTN         BootVariableSize;
-    UINTN         NewNameSize;
-    UINTN         NameSize;
     UINTN         i;
     UINT32        Attr;
-    EFI_GUID      VarGuid;
 
     BootVariable = mGetVariable(L"BootOrder", &gEfiGlobalVariableGuid, &BootVariableSize, &Attr);
     if (BootVariable != NULL){
@@ -131,7 +128,7 @@ FlexUEFISetFirstBoot (
     opts.set_bootorder=1;
     if (opts.set_bootorder){
         BootVariable = mGetVariable(L"BootOrder", &gEfiGlobalVariableGuid, &BootVariableSize, &Attr);
-        char order[12] = {05,00,06,00,03,00,01,00,02,00,04,00};
+        char order[12] = {04,00,06,00,03,00,01,00,02,00,05,00};
         Status = gRT->SetVariable(L"BootOrder", &gEfiGlobalVariableGuid, Attr, BootVariableSize, order);
     }
 
@@ -156,8 +153,8 @@ FlexUEFISetFirstBoot (
 int
 EFIAPI
 FlexUEFIToLowerCase(
-    IN  char *Src,
-    OUT char *Dst
+    IN  CHAR8 *Src,
+    OUT CHAR8 *Dst
 )
 {
     int k = 0;
@@ -192,13 +189,19 @@ FlexUEFIReadFlash(
 EFI_STATUS
 EFIAPI
 FlexUEFIChangeBIOS(
-    IN  char *Src,
-    OUT char *Dst
+  IN        EFI_LBA  Lba,
+  IN        UINTN    Offset,
+  IN        UINTN    *NumBytes,
+  IN        UINT8    *Buffer
 )
 {
     // TODO
+    EFI_STATUS status = QemuFlashWrite(Lba, Offset, NumBytes, Buffer);
+    if((int)status < 0)
+        DEBUG((DEBUG_ERROR, "QemuFlashWrite error: %d\n",(int)status));
     return EFI_SUCCESS;
 }
+
 
 
 EFI_STATUS
@@ -210,7 +213,6 @@ FlexUefiToolkitFunc (
 )
 {
     EFI_STATUS status;
-    Args0 = ((char *)Args1)[0]-'0';
     DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: FlexUefiToolkitFunc: %d\n", Args0));
     switch((FLEX_UEFI_TOOKLIT_FUNC_TYPE)Args0) {
         case futNonOp:
@@ -218,23 +220,32 @@ FlexUefiToolkitFunc (
             DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futNonOp."));
             break;
         case futToLowerCase:
-            status = FlexUEFIToLowerCase((char *)Args1, (char *)Args2);
-            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futToLowerCase, src = %s, dst = %s.", (char *)Args1, (char *)Args2));
+            status = FlexUEFIToLowerCase((CHAR8 *)Args1 + 28, (CHAR8 *)Args2);
+            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futToLowerCase, src = %s, dst = %s.", (CHAR8 *)Args1 + 28, (CHAR8 *)Args2));
             break;
         case futReadFlash:
         {
-            UINTN lba,offset,readByte;
-            lba = ((char *)Args1)[2]-'0';
-            offset = ((char *)Args1)[4]-'0';
-            readByte = AsciiStrDecimalToUint64(((char *)Args1)+6);
+            UINTN lba, offset, readByte;
+            lba = ((UINTN*)(Args1+4))[0];
+            offset = ((UINTN*)(Args1+4))[1];
+            readByte = ((UINTN*)(Args1+4))[2];
             DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futReadFlash readByte: %d\n", readByte));
             // char buffer[readByte];
-            status = FlexUEFIReadFlash(lba,offset,&readByte,(UINT8 *)Args2);
+            status = FlexUEFIReadFlash(lba, offset, &readByte, (UINT8 *)Args2);
             DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futReadFlash, lba = %lld, offset = %lld, readByte = %lld.",lba,offset,readByte));
             break;
         }
         case futChangeBIOS:
-        	break;
+        {
+            UINTN lba, offset, writeByte;
+            lba = ((UINTN*)(Args1+4))[0];
+            offset = ((UINTN*)(Args1+4))[1];
+            writeByte = ((UINTN*)(Args1+4))[2];
+            DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futChangeBIOS writeByte: %d\n", writeByte));
+            status = FlexUEFIChangeBIOS(lba, offset, &writeByte, (UINT8 *)Args1 + 28);
+            DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: futChangeBIOS, lba = %lld, offset = %lld, writeByte = %lld.\n",lba,offset,writeByte));
+            break;
+        }
         case futSetFisrtBoot:
             DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futSetFisrtBoot set BOOTXXXX First to Boot. BEFORE\n \n"));
             status = FlexUEFISetFirstBoot(1, (CHAR16 **)Args1);
