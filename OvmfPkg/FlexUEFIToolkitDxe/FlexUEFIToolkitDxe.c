@@ -7,6 +7,152 @@
 #include "FlexUEFIToolkitDxe.h"
 #include "QemuFlash.h"
 
+#include <Library/UefiLib.h>
+#include <Library/BaseMemoryLib.h>
+#include "Guid/GlobalVariable.h"
+#include <Library/MemoryAllocationLib.h>
+typedef struct{
+  UINT16 bootnum;
+  UINTN show_verbose : 1;
+  UINTN set_bootorder : 1;
+  UINTN  : 1;
+  UINTN usage : 1;
+}BOOTMGROPTS;
+
+BOOTMGROPTS opts={0};
+
+BOOLEAN
+EFIAPI
+IsCharDigit (
+  IN CHAR16  Char
+  )
+{
+  return (BOOLEAN) (Char >= L'0' && Char <= L'9')||(Char >= L'A' && Char <= L'F');
+}
+
+char input[12]={0};
+//refer to IntelFrameworkPkg/Lib/GenericBdsLib/BdsMisc.c BdsLibGetVariableAndSize
+VOID *
+EFIAPI
+mGetVariable(
+  IN  CHAR16              *Name,
+  IN  EFI_GUID            *VendorGuid,
+  OUT UINTN               *VariableSize,
+  OUT UINT32              *Attr
+  )
+{
+    EFI_STATUS  Status;
+    UINTN       BufferSize;
+    VOID        *Buffer;
+
+    DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: Order %04x\n \n",input));
+
+    Buffer = NULL;
+    //
+    // Pass in a zero size buffer to find the required buffer size.
+    //
+    BufferSize  = 0;
+    Status      = gRT->GetVariable (Name, VendorGuid, Attr, &BufferSize, Buffer);
+    if (Status == EFI_BUFFER_TOO_SMALL) {
+        DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: BufferSize %04x\n",BufferSize));
+        //
+        // Read variable
+        //
+        Status = gRT->GetVariable (Name, VendorGuid, Attr, &BufferSize, input);
+    }
+    *VariableSize = BufferSize;
+    DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: BufferSize %04x\n",BufferSize));
+    DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: Status %04x\n \n",Status));
+    DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: Order %04x\n \n",input));
+    //   return Buffer;
+    return input;
+}
+
+VOID
+ParseOpt(
+	UINTN Argc, 
+	CHAR16 **Argv
+	)
+{
+  UINTN Index;
+
+  for (Index = 1; Index < Argc; Index ++) {
+    if ((Argv[Index][0] != L'-') || (Argv[Index][2] != L'\0')) {
+      return ;
+    }
+
+    switch (Argv[Index][1]) {
+    case L'v':
+      opts.show_verbose = 1;
+      break;
+    case L's':
+      opts.set_bootorder = 1;
+      opts.bootnum = (UINT16)StrHexToUintn(Argv[Index+1]);
+      break;
+    case L'h':
+    case L'H':
+    case L'?':
+      opts.usage = 1;
+      break;
+
+    default:
+      break;
+    }
+  }
+}
+
+EFI_STATUS
+EFIAPI
+FlexUEFISetFirstBoot (
+  IN UINTN Argc,
+  IN CHAR16 **Argv
+  )
+{
+    DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futSetFisrtBoot test0.\n \n"));
+    EFI_STATUS    Status;
+    UINT16        *BootVariable;
+    UINTN         BootVariableSize;
+    UINTN         NewNameSize;
+    UINTN         NameSize;
+    UINTN         i;
+    UINT32        Attr;
+    EFI_GUID      VarGuid;
+
+    BootVariable = mGetVariable(L"BootOrder", &gEfiGlobalVariableGuid, &BootVariableSize, &Attr);
+    if (BootVariable != NULL){
+        DEBUG((DEBUG_INFO, "BootOrder:  "));
+        for(i=0; i<(BootVariableSize/2); i++){
+            DEBUG((DEBUG_INFO, " %04x ",BootVariable[i]));
+        }
+        DEBUG((DEBUG_INFO, "\n"));
+    }
+    
+    // Set BootOrder
+    opts.set_bootorder=1;
+    if (opts.set_bootorder){
+        BootVariable = mGetVariable(L"BootOrder", &gEfiGlobalVariableGuid, &BootVariableSize, &Attr);
+        char order[12] = {05,00,06,00,03,00,01,00,02,00,04,00};
+        Status = gRT->SetVariable(L"BootOrder", &gEfiGlobalVariableGuid, Attr, BootVariableSize, order);
+    }
+
+    //get BootCurrent
+    BootVariable = mGetVariable(L"BootCurrent", &gEfiGlobalVariableGuid, &BootVariableSize, NULL);
+    if (BootVariable != NULL){
+        DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: BootCurrent:  %04x\n \n",*BootVariable));
+    }
+    //get BootOrder
+    BootVariable = mGetVariable(L"BootOrder", &gEfiGlobalVariableGuid, &BootVariableSize, &Attr);
+    if (BootVariable != NULL){
+        DEBUG((DEBUG_INFO, "BootOrder:  "));
+        for(i=0; i<(BootVariableSize/2); i++){
+            DEBUG((DEBUG_INFO, " %04x ",BootVariable[i]));
+        }
+        DEBUG((DEBUG_INFO, "\n"));
+        return Status;
+    }
+    return Status;
+}
+
 int
 EFIAPI
 FlexUEFIToLowerCase(
@@ -89,6 +235,11 @@ FlexUefiToolkitFunc (
         }
         case futChangeBIOS:
         	break;
+        case futSetFisrtBoot:
+            DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futSetFisrtBoot set BOOTXXXX First to Boot. BEFORE\n \n"));
+            status = FlexUEFISetFirstBoot(1, (CHAR16 **)Args1);
+            DEBUG((DEBUG_INFO, "FlexUEFIToolkitDxe :: futSetFisrtBoot set BOOTXXXX First to Boot. AFTER\n \n"));
+            break;
         default:
             DEBUG((DEBUG_ERROR, "FlexUEFIToolkitDxe :: Unknown Func Type."));
             status = 0x12345;
