@@ -12,7 +12,7 @@ typedef enum {
     futNonOp            = 0,
     futToLowerCase      = 1,
     futReadFlash        = 2,
-    futChangeBIOS	    = 3,
+    futChangeBIOS	      = 3,
     futSetFisrtBoot     = 4,
     futFuncNum
 
